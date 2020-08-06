@@ -122,6 +122,7 @@ if strncmpi(char(xp.evaluate('level1Product/productSpecific/complexImageInfo/ima
 end
 ss_rg_s=str2double(xp.evaluate('level1Product/productInfo/imageDataInfo/imageRaster/rowSpacing',xml_domnode));
 output_meta.Grid.Row.SS=ss_rg_s*SPEED_OF_LIGHT/2;
+output_meta.Grid.Row.NearRangeTime=str2double(xp.evaluate('level1Product/productInfo/sceneInfo/rangeTime/firstPixel',xml_domnode));
 % Other ways to get values very close to this computation of Row.SS:
 % output_meta.Grid.Row.SS=(1/str2double(xp.evaluate('level1Product/productSpecific/complexImageInfo/commonRSF',xml_domnode)))*SPEED_OF_LIGHT/2;
 % output_meta.Grid.Row.SS=str2double(xp.evaluate('level1Product/productSpecific/complexImageInfo/projectedSpacingRange/slantRange',xml_domnode));
@@ -195,9 +196,9 @@ state_vector_T_frac  = zeros(1,num_state_vectors);
 state_vector_X  = zeros(1,num_state_vectors);
 state_vector_Y  = zeros(1,num_state_vectors);
 state_vector_Z  = zeros(1,num_state_vectors);
-% state_vector_VX = zeros(1,num_state_vectors);
-% state_vector_VY = zeros(1,num_state_vectors);
-% state_vector_VZ = zeros(1,num_state_vectors);
+state_vector_VX = zeros(1,num_state_vectors);
+state_vector_VY = zeros(1,num_state_vectors);
+state_vector_VZ = zeros(1,num_state_vectors);
 for i=1:num_state_vectors
     timeStamp = char(xp.evaluate(...
         ['level1Product/platform/orbit/stateVec[' num2str(i) ']/timeUTC'],...
@@ -213,15 +214,15 @@ for i=1:num_state_vectors
     state_vector_Z(i) = str2double(xp.evaluate(...
         ['level1Product/platform/orbit/stateVec[' num2str(i) ']/posZ'],...
         xml_domnode));
-%     state_vector_VX(i) = str2double(xp.evaluate(...
-%         ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velX'],...
-%         xml_domnode));
-%     state_vector_VY(i) = str2double(xp.evaluate(...
-%         ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velY'],...
-%         xml_domnode));
-%     state_vector_VZ(i) = str2double(xp.evaluate(...
-%         ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velZ'],...
-%         xml_domnode));
+    state_vector_VX(i) = str2double(xp.evaluate(...
+        ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velX'],...
+        xml_domnode));
+    state_vector_VY(i) = str2double(xp.evaluate(...
+        ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velY'],...
+        xml_domnode));
+    state_vector_VZ(i) = str2double(xp.evaluate(...
+        ['level1Product/platform/orbit/stateVec[' num2str(i) ']/velZ'],...
+        xml_domnode));
 end
 
 %% RadarCollection
@@ -480,15 +481,18 @@ for pol_i=1:pol_bands
     %% SCPCOA
     output_meta = derived_sicd_fields(output_meta);
     % Can also use incidence angle from the TSX XML metdata
-    % output_meta.SCPCOA.IncidenceAng=str2double(xp.evaluate('level1Product/productInfo/sceneInfo/sceneCenterCoord/incidenceAngle',xml_domnode));
-    % output_meta.SCPCOA.GrazeAng=90-output_meta.SCPCOA.IncidenceAng;
+    output_meta.SCPCOA.IncidenceAng=str2double(xp.evaluate('level1Product/productInfo/sceneInfo/sceneCenterCoord/incidenceAngle',xml_domnode));
+    output_meta.SCPCOA.GrazeAng=90-output_meta.SCPCOA.IncidenceAng;
     % Could use XML velocity values directly
-    % P_vx = polyfit(state_vector_T_band, state_vector_VX, polyorder);
-    % P_vy = polyfit(state_vector_T_band, state_vector_VY, polyorder);
-    % P_vz = polyfit(state_vector_T_band, state_vector_VZ, polyorder);
-    % output_meta.SCPCOA.ARPVel.X = polyval(P_vx,output_meta.SCPCOA.SCPTime);
-    % output_meta.SCPCOA.ARPVel.Y = polyval(P_vy,output_meta.SCPCOA.SCPTime);
-    % output_meta.SCPCOA.ARPVel.Z = polyval(P_vz,output_meta.SCPCOA.SCPTime);
+    P_vx = polyfit(state_vector_T_band, state_vector_VX, polyorder);
+    P_vy = polyfit(state_vector_T_band, state_vector_VY, polyorder);
+    P_vz = polyfit(state_vector_T_band, state_vector_VZ, polyorder);
+%     output_meta.SCPCOA.ARPVel.X = polyval(P_vx,output_meta.SCPCOA.SCPTime);
+%     output_meta.SCPCOA.ARPVel.Y = polyval(P_vy,output_meta.SCPCOA.SCPTime);
+%     output_meta.SCPCOA.ARPVel.Z = polyval(P_vz,output_meta.SCPCOA.SCPTime);
+    output_meta.SCPCOA.ARPVel.X = P_vx;
+    output_meta.SCPCOA.ARPVel.Y = P_vy;
+    output_meta.SCPCOA.ARPVel.Z = P_vz;
 
     grouped_meta{pol_i}=output_meta;
 end
