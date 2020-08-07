@@ -80,6 +80,22 @@ if ~isempty(geo_xml) % If geoReference file is available
         [scp_geo_node_str '/lon'], geo_xml)));
     output_meta.GeoData.SCP.LLH.HAE=str2double(char(xp.evaluate(...
         [scp_geo_node_str '/height'], geo_xml)));
+    % ----------------------------------------------------
+    for i = 1:num_grid_az_pts
+        for j = 1:num_grid_rg_pts
+            scp_geo_node_str_temp = ['geoReference/geolocationGrid/gridPoint[@irg="' ...
+                num2str(ctr_grid_rg) '" and @iaz="' num2str(ctr_grid_az) '"]'];
+            GridPoint(i,j).lat = str2double(char(xp.evaluate(...
+                [scp_geo_node_str_temp '/lat'], geo_xml)));
+            GridPoint(i,j).lon = str2double(char(xp.evaluate(...
+                [scp_geo_node_str_temp '/lon'], geo_xml)));
+            GridPoint(i,j).height = str2double(char(xp.evaluate(...
+                [scp_geo_node_str_temp '/height'], geo_xml)));
+        end
+    end
+    output_meta.GeoData.GridPoint = GridPoint;
+    % ÄâºÏÊý¾Ý
+    % ----------------------------------------------------
 else
     output_meta.GeoData.SCP.LLH.Lat=str2double(xp.evaluate('level1Product/productInfo/sceneInfo/sceneCenterCoord/lat',xml_domnode));
     output_meta.GeoData.SCP.LLH.Lon=str2double(xp.evaluate('level1Product/productInfo/sceneInfo/sceneCenterCoord/lon',xml_domnode));
