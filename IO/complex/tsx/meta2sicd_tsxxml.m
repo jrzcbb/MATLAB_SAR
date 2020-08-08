@@ -413,10 +413,11 @@ for pol_i=1:pol_bands
     end
     output_meta.RMA.INCA.TimeCAPoly(2,1)=ss_zd_s/output_meta.Grid.Col.SS; % Convert zero doppler spacing from sec/pixels to sec/meters
     [output_meta.RMA.INCA.DopCentroidPoly, ...
-        output_meta.Grid.TimeCOAPoly] = ...
+        output_meta.Grid.TimeCOAPoly,output_meta_temp] = ...
         computeDopCentroidPolys(xml_domnode,pols{pol_i},...
         azimuth_time_scp,azimuth_time_frac,... % SCP zero doppler time
         range_time_scp); % SCP range time
+    output_meta.OtherPara = output_meta_temp.OtherPara;
     if strncmpi(output_meta.CollectionInfo.RadarMode.ModeID,'ST',2)
         % DopCentroidPoly only used for Stripmap and Dynamic Stripmap
         % collections.
@@ -512,13 +513,14 @@ for pol_i=1:pol_bands
 
     grouped_meta{pol_i}=output_meta;
 end
+
 output_meta=grouped_meta; % Cell array with metadata struct for each band
 
 end
 
 
-function [DopCentroidPoly, TimeCOAPoly] = ...
-        computeDopCentroidPolys(domnode, polarization, ...
+function [DopCentroidPoly, TimeCOAPoly,output_meta_temp] = ...
+        computeDopCentroidPolys(domnode,polarization, ...
         t_utc_scp, t_utc_scp_frac, t_rg_scp) % SCP info with which these polynomials will be with to respect to
 % From the paper "TerraSAR-X Deskew Description", Michael Stewart,
 % December 11, 2008
@@ -573,7 +575,17 @@ ss_zd_s=str2double(xp.evaluate(... % Image column spacing in zero doppler time
     domnode));
 lookdir=char(xp.evaluate('level1Product/productInfo/acquisitionInfo/lookDirection',domnode));
 ss_zd_m=str2double(xp.evaluate('level1Product/productSpecific/complexImageInfo/projectedSpacingAzimuth',domnode));
-
+% Other para
+output_meta_temp.OtherPara.t_utc_ref = t_utc_ref;
+output_meta_temp.OtherPara.t_utc_ref_frac = t_utc_ref_frac;
+output_meta_temp.OtherPara.t_utc_start = t_utc_start;
+output_meta_temp.OtherPara.t_utc_start_frac = t_utc_start_frac;
+output_meta_temp.OtherPara.t_rg_ref = t_rg_ref;
+output_meta_temp.OtherPara.det_rg_max = det_rg_max;
+output_meta_temp.OtherPara.det_rg_min = det_rg_min;
+output_meta_temp.OtherPara.ss_zd_s = ss_zd_s;
+output_meta_temp.OtherPara.ss_zd_m = ss_zd_m;
+output_meta_temp.OtherPara.SECONDS_IN_A_DAY = 24*60*60;
 % Doppler Centroid Grid Evaluation (section 2.2 in paper)
 % Compute differential range and zero doppler times for each of the TSX
 % discrete doppler centroid estimates
