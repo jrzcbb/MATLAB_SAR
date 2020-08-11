@@ -6,7 +6,7 @@ function [ output_meta ] = meta2sicd_tsxxml( xml_domnode, geo_xml )
 %
 % SICD fields not currently computed:
 %    ValidData (although computation of this is shown in cosar_valid_data.m)
-% 
+%
 % Written by: Wade Schwartzkopf, NGA/IDT
 %
 % //////////////////////////////////////////
@@ -45,8 +45,8 @@ output_meta.ImageCreation.Profile='Prototype';
 
 %% ImageData
 % Rows/columns switched since data stored "sideways" from SICD standard
-output_meta.ImageData.NumRows=uint32(str2double(xp.evaluate('level1Product/productInfo/imageDataInfo/imageRaster/numberOfColumns',xml_domnode)));
-output_meta.ImageData.NumCols=uint32(str2double(xp.evaluate('level1Product/productInfo/imageDataInfo/imageRaster/numberOfRows',xml_domnode)));
+output_meta.ImageData.NumCols=uint32(str2double(xp.evaluate('level1Product/productInfo/imageDataInfo/imageRaster/numberOfColumns',xml_domnode)));
+output_meta.ImageData.NumRows=uint32(str2double(xp.evaluate('level1Product/productInfo/imageDataInfo/imageRaster/numberOfRows',xml_domnode)));
 output_meta.ImageData.FullImage=output_meta.ImageData;
 output_meta.ImageData.FirstRow=uint32(0); output_meta.ImageData.FirstCol=uint32(0);
 output_meta.ImageData.PixelType='RE16I_IM16I';
@@ -341,7 +341,7 @@ for pol_i=1:pol_bands
     output_meta.Position.ARPPoly.X  = P_x(end:-1:1).';
     output_meta.Position.ARPPoly.Y  = P_y(end:-1:1).';
     output_meta.Position.ARPPoly.Z  = P_z(end:-1:1).';
-
+    
     %% RadarCollection
     % output_meta.RadarCollection.RefFreqIndex=uint32(0); % Absence of this field means all frequencies are true values
     bw=str2double(xp.evaluate(['level1Product/instrument/settings[polLayer="' pols{pol_i} '"]/rxBandwidth'],xml_domnode));
@@ -373,7 +373,7 @@ for pol_i=1:pol_bands
         output_meta.RadarCollection.TxFrequency.Max;
     output_meta.ImageFormation.TxRcvPolarizationProc=...
         output_meta.RadarCollection.RcvChannels.ChanParameters(pol_i).TxRcvPolarization;
-
+    
     %% RMA
     if ~isempty(geo_xml) % Use geoReference file which is much more precise
         [t_ref, t_ref_frac] = datenum_w_frac(char(xp.evaluate(...
@@ -385,7 +385,7 @@ for pol_i=1:pol_bands
         az_shift = 0;
         for j = 1:str2double(xp.evaluate('count(geoReference/signalPropagationEffects/azimuthShift)',geo_xml))
             az_shift = az_shift + ...
-            str2double(xp.evaluate(['geoReference/signalPropagationEffects/azimuthShift[' num2str(j) ']/coefficient'], geo_xml));
+                str2double(xp.evaluate(['geoReference/signalPropagationEffects/azimuthShift[' num2str(j) ']/coefficient'], geo_xml));
         end
         output_meta.RMA.INCA.TimeCAPoly = TimeCA_scp + az_offset - az_shift; % Relative to start of collect, not geogrid reference time
         azimuth_time_scp = t_ref;
@@ -396,7 +396,7 @@ for pol_i=1:pol_bands
         rg_delay = 0;
         for j = 1:str2double(xp.evaluate('count(geoReference/signalPropagationEffects/rangeDelay)',geo_xml))
             rg_delay = rg_delay + ...
-            str2double(xp.evaluate(['geoReference/signalPropagationEffects/rangeDelay[' num2str(j) ']/coefficient'], geo_xml));
+                str2double(xp.evaluate(['geoReference/signalPropagationEffects/rangeDelay[' num2str(j) ']/coefficient'], geo_xml));
         end
         output_meta.RMA.INCA.R_CA_SCP = (range_time_scp-rg_delay)*SPEED_OF_LIGHT/2;
     else % Main TSX XML also defines its own center point
@@ -476,13 +476,13 @@ for pol_i=1:pol_bands
         (2/SPEED_OF_LIGHT).^(0:(length(dop_rate_poly)-1)).';
     output_meta.RMA.INCA.DRateSFPoly = - conv(dop_rate_poly_rg_scaled,r_ca) * ... % Multiplication of two polynomials is just a convolution of their coefficients
         SPEED_OF_LIGHT / (2 * fc * vm_ca_sq(1)); % Assumes a SGN of -1
-
+    
     %% Radiometric
     output_meta.Radiometric.BetaZeroSFPoly = str2double(xp.evaluate(...
         ['level1Product/calibration/calibrationConstant[@layerIndex="' num2str(pol_i) '"]/calFactor'],...
         xml_domnode));
     % RCS, Sigma0, Gamma0 will be populated in derived_sicd_fields
-
+    
     %% GeoData
     % Now that sensor model fields have been populated, we can populate
     % GeoData.SCP more precisely.
@@ -504,13 +504,24 @@ for pol_i=1:pol_bands
     P_vx = polyfit(state_vector_T_band, state_vector_VX, polyorder);
     P_vy = polyfit(state_vector_T_band, state_vector_VY, polyorder);
     P_vz = polyfit(state_vector_T_band, state_vector_VZ, polyorder);
-%     output_meta.SCPCOA.ARPVel.X = polyval(P_vx,output_meta.SCPCOA.SCPTime);
-%     output_meta.SCPCOA.ARPVel.Y = polyval(P_vy,output_meta.SCPCOA.SCPTime);
-%     output_meta.SCPCOA.ARPVel.Z = polyval(P_vz,output_meta.SCPCOA.SCPTime);
+    %     output_meta.SCPCOA.ARPVel.X = polyval(P_vx,output_meta.SCPCOA.SCPTime);
+    %     output_meta.SCPCOA.ARPVel.Y = polyval(P_vy,output_meta.SCPCOA.SCPTime);
+    %     output_meta.SCPCOA.ARPVel.Z = polyval(P_vz,output_meta.SCPCOA.SCPTime);
     output_meta.SCPCOA.ARPVel.X = P_vx;
     output_meta.SCPCOA.ARPVel.Y = P_vy;
     output_meta.SCPCOA.ARPVel.Z = P_vz;
-
+    %% CornerCoord
+    output_meta.OtherPara.AzimTimeStart = 0;
+    
+    [t_ref, t_ref_frac] = datenum_w_frac(char(xp.evaluate(...
+        'level1Product/productInfo/sceneInfo/sceneCornerCoord[1]/azimuthTimeUTC', xml_domnode)));
+    [t_ref1, t_ref_frac1] = datenum_w_frac(char(xp.evaluate(...
+        'level1Product/productInfo/sceneInfo/sceneCornerCoord[3]/azimuthTimeUTC', xml_domnode)));
+    az_offset = round((t_ref1-t_ref)*SECONDS_IN_A_DAY) + ... % Convert to seconds
+        (t_ref_frac1-t_ref_frac); % Handle fractional seconds
+    
+    output_meta.OtherPara.AzimTimeDuration =az_offset;
+    output_meta.OtherPara.AzimTimeEnd = az_offset;
     grouped_meta{pol_i}=output_meta;
 end
 
@@ -520,8 +531,8 @@ end
 
 
 function [DopCentroidPoly, TimeCOAPoly,output_meta_temp] = ...
-        computeDopCentroidPolys(domnode,polarization, ...
-        t_utc_scp, t_utc_scp_frac, t_rg_scp) % SCP info with which these polynomials will be with to respect to
+    computeDopCentroidPolys(domnode,polarization, ...
+    t_utc_scp, t_utc_scp_frac, t_rg_scp) % SCP info with which these polynomials will be with to respect to
 % From the paper "TerraSAR-X Deskew Description", Michael Stewart,
 % December 11, 2008
 
@@ -542,8 +553,8 @@ t_rg_ref=str2double(xp.evaluate(... % Reference range time for doppler centroid 
     ['level1Product/processing/doppler/dopplerCentroid[polLayer="' upper(polarization) '"]/dopplerEstimate[' num2str(ceil(N/2)) ']/combinedDoppler/referencePoint'],...
     domnode));
 [t_utc_start,t_utc_start_frac]=datenum_w_frac(char(xp.evaluate(...
-        ['level1Product/instrument/settings[polLayer="' upper(polarization) '"]/settingRecord/dataSegment/startTimeUTC'],...
-        domnode)));
+    ['level1Product/instrument/settings[polLayer="' upper(polarization) '"]/settingRecord/dataSegment/startTimeUTC'],...
+    domnode)));
 [det_raw,det_raw_frac,det_rg_max,det_rg_min,de_c0,de_c1]=deal(zeros(N,1));
 for i=1:N
     det_raw_str=char(xp.evaluate(... % Raw times of doppler estimates.  We use this for center of aperture time.
@@ -625,18 +636,18 @@ end
 % A*x = b
 % We add x(2,3),x(3,2), and x(3,3), even though they were not in the paper.
 a=[ones(M*N,1) ...
-   range_scp_m(:) ...
-   range_scp_m(:).^2 ...
-   azimuth_scp_m(:) ...
-   range_scp_m(:).*azimuth_scp_m(:) ...
-   (range_scp_m(:).^2).*azimuth_scp_m(:) ...
-   azimuth_scp_m(:).^2 ...
-   range_scp_m(:).*(azimuth_scp_m(:).^2) ...
-   (range_scp_m(:).^2).*(azimuth_scp_m(:).^2)];
+    range_scp_m(:) ...
+    range_scp_m(:).^2 ...
+    azimuth_scp_m(:) ...
+    range_scp_m(:).*azimuth_scp_m(:) ...
+    (range_scp_m(:).^2).*azimuth_scp_m(:) ...
+    azimuth_scp_m(:).^2 ...
+    range_scp_m(:).*(azimuth_scp_m(:).^2) ...
+    (range_scp_m(:).^2).*(azimuth_scp_m(:).^2)];
 [b_dc,b_coa]=deal(zeros(size(a,2),1));
 for i=1:size(a,2)
-   b_dc(i)=sum(f_dc(:).*a(:,i)); % Doppler centroid
-   b_coa(i)=sum(t_coa(:).*a(:,i)); % Center of aperture time
+    b_dc(i)=sum(f_dc(:).*a(:,i)); % Doppler centroid
+    b_coa(i)=sum(t_coa(:).*a(:,i)); % Center of aperture time
 end
 A=zeros(size(a,2));
 for i=1:size(a,2)
@@ -649,11 +660,11 @@ x=A\b_dc; % MATLAB often flags this as badly scaled, but results still appear va
 x2=A\b_coa;
 warning(old_warning_state);
 DopCentroidPoly=reshape(x,3,3); % Polynomial coefficients for computing the doppler
-                                % centroid as a continous function of range
-                                % and azimuth distance from SCP.
+% centroid as a continous function of range
+% and azimuth distance from SCP.
 TimeCOAPoly=reshape(x2,3,3);    % Polynomial coefficients for computing
-                                % coa time as a continous function of
-                                % range and azimuth distance from SCP.
+% coa time as a continous function of
+% range and azimuth distance from SCP.
 
 end
 
@@ -666,9 +677,9 @@ end
 % handle the fractional seconds separately so we can read date with the
 % precision we need.
 function [datenum_s, datenum_frac] = datenum_w_frac(datestring)
-    datenum_s = datenum(datestring,'yyyy-mm-ddTHH:MM:SS');
-    datenum_frac = str2double(regexp(datestring,'\.\d*','match'));
-    if isnan(datenum_frac), datenum_frac = 0; end;
+datenum_s = datenum(datestring,'yyyy-mm-ddTHH:MM:SS');
+datenum_frac = str2double(regexp(datestring,'\.\d*','match'));
+if isnan(datenum_frac), datenum_frac = 0; end;
 end
 
 % //////////////////////////////////////////
