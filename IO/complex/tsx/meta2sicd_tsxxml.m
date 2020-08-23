@@ -84,7 +84,7 @@ if ~isempty(geo_xml) % If geoReference file is available
     for i = 1:num_grid_az_pts
         for j = 1:num_grid_rg_pts
             scp_geo_node_str_temp = ['geoReference/geolocationGrid/gridPoint[@irg="' ...
-                num2str(ctr_grid_rg) '" and @iaz="' num2str(ctr_grid_az) '"]'];
+                num2str(j) '" and @iaz="' num2str(i) '"]'];
             GridPoint(i,j).lat = str2double(char(xp.evaluate(...
                 [scp_geo_node_str_temp '/lat'], geo_xml)));
             GridPoint(i,j).lon = str2double(char(xp.evaluate(...
@@ -522,6 +522,8 @@ for pol_i=1:pol_bands
     
     output_meta.OtherPara.AzimTimeDuration =az_offset;
     output_meta.OtherPara.AzimTimeEnd = az_offset;
+    output_meta.OtherPara.rg_delay = rg_delay;
+    output_meta.OtherPara.az_shift = az_shift;
     grouped_meta{pol_i}=output_meta;
 end
 
